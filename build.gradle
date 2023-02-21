@@ -1,0 +1,32 @@
+plugins {
+	id 'java'
+	id 'war'
+	id 'org.springframework.boot' version '3.0.2'
+	id 'io.spring.dependency-management' version '1.1.0'
+}
+
+group = 'jp.takaman2180'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '17'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	implementation 'com.google.firebase:firebase-admin:9.1.1'
+	implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.13.4.1'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+//ここで名前を変更することができる
+bootWar {
+	archiveName 'HelloSpringApp.war'
+}
