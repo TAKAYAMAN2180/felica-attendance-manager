@@ -5,6 +5,7 @@ import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import jp.takaman2180.felicaattendacemanager.entity.Member;
 import jp.takaman2180.felicaattendacemanager.entity.Room;
+import jp.takaman2180.felicaattendacemanager.entity.ResultStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -16,7 +17,6 @@ public class RoomService {
     private static final String COLLECTION_NAME = "room";
 
     public static ArrayList<Integer> getAllRoomId() throws ExecutionException, InterruptedException {
-        System.out.println("start");
         ArrayList<Integer> returnArray = new ArrayList<>();
 
         Firestore dbFirestore = FirestoreClient.getFirestore();
@@ -24,15 +24,12 @@ public class RoomService {
         Iterator<DocumentReference> iterator = documentReferences.iterator();
 
         while (iterator.hasNext()) {
-            System.out.println("kurikaesi");
             DocumentReference documentReference = iterator.next();
             ApiFuture<DocumentSnapshot> future = documentReference.get();
             DocumentSnapshot documentSnapshot = future.get();
 
-            System.out.println("data:" + documentSnapshot.getData());
 
             try {
-                System.out.println(documentSnapshot.get("room_id"));
                 returnArray.add(((Long) documentSnapshot.get("room_id")).intValue());
             } catch (NullPointerException nullPointerException) {
                 nullPointerException.printStackTrace();
@@ -92,7 +89,7 @@ public class RoomService {
 
     }
 
-    public static String updateStatus(int roomId, String getIdm) throws ExecutionException, InterruptedException {
+    public static ResultStatus updateStatus(int roomId, String getIdm) throws ExecutionException, InterruptedException {
         Firestore dbFirestore = FirestoreClient.getFirestore();
         DocumentReference documentReference = dbFirestore.collection(COLLECTION_NAME).document(String.valueOf(roomId));
 
@@ -101,6 +98,7 @@ public class RoomService {
 
         boolean isFound = false;
 
+
         if (document.exists()) {
             CollectionReference collectionReference = documentReference.collection("member");
             ApiFuture<QuerySnapshot> futureForSubCollection = collectionReference.get();
@@ -108,11 +106,9 @@ public class RoomService {
 
             for (QueryDocumentSnapshot documentSnapshot : documentSnapshots) {
                 String tempIdm = documentSnapshot.getString("idm");
-                System.out.println(tempIdm);
                 try {
                     if (tempIdm.equals(getIdm)) {
                         isFound = true;
-                        System.out.println("Found idm:" + getIdm);
                         break;
                     }
                 } catch (NullPointerException nullPointerException) {
@@ -127,12 +123,17 @@ public class RoomService {
                 DocumentSnapshot documentSnapshotForChild = futureForChild.get();
 
                 boolean isEntry = Boolean.TRUE.equals(documentSnapshotForChild.getBoolean("is_entry"));
+                ResultStatus resultStatus;
 
                 if (isEntry) {
                     documentReferenceForChild.update("is_entry", false);
+                    resultStatus = ResultStatus.EXIT;
                 } else {
                     documentReferenceForChild.update("is_entry", true);
+                    resultStatus = ResultStatus.ATTEND;
                 }
+
+                return resultStatus;
             } else {
                 //そのidmをもつドキュメントを生成する&入れる
                 //すでに上でidmのチェックをしているのでここでは重複がないことは保証されている
@@ -140,6 +141,7 @@ public class RoomService {
                 member.setValues(getIdm, true);
                 ApiFuture<WriteResult> resultApiFuture = documentReference.collection("member").document(getIdm).set(member);
 
+                return ResultStatus.ATTEND;
             }
 
         }

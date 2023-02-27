@@ -2,6 +2,8 @@ package jp.takaman2180.felicaattendacemanager;
 
 
 import jp.takaman2180.felicaattendacemanager.entity.Member;
+import jp.takaman2180.felicaattendacemanager.entity.RequestStatus;
+import jp.takaman2180.felicaattendacemanager.entity.ResultStatus;
 import jp.takaman2180.felicaattendacemanager.services.MemberService;
 import jp.takaman2180.felicaattendacemanager.services.RoomService;
 import org.springframework.boot.SpringApplication;
@@ -37,7 +39,9 @@ public class FelicaAttendanceManagerApplication {
             json = objectMapper.writeValueAsString(array);
         } catch (Exception e) {
             e.printStackTrace();
-            return "error";
+            RequestStatus status = RequestStatus.ERROR;
+            status.setStatusMsg(e.getMessage());
+            return status.getStatusMsg();
         }
 
         return json;
@@ -57,7 +61,9 @@ public class FelicaAttendanceManagerApplication {
             json = objectMapper.writeValueAsString(array);
         } catch (Exception e) {
             e.printStackTrace();
-            return "error";
+            RequestStatus status = RequestStatus.ERROR;
+            status.setStatusMsg(e.getMessage());
+            return status.getStatusMsg();
         }
 
         return json;
@@ -66,14 +72,18 @@ public class FelicaAttendanceManagerApplication {
     @PostMapping("/api/rooms/makeRoom")
     public String makeRoom(@RequestParam(value = "roomId", defaultValue = "0") int roomId) {
         if (roomId == 0) {
-            return "roomId is null";
+            RequestStatus status = RequestStatus.BAD_REQUEST;
+            status.setStatusMsg("roomId is null");
+            return status.getStatusMsg();
         } else {
             boolean result = RoomService.checkRoomExist(roomId);
-            if (result) {
+            if (!result) {
                 RoomService.makeRoom(roomId);
-                return "success";
+                return RequestStatus.SUCCESS.getStatusMsg();
             } else {
-                return roomId + " is already exist";
+                RequestStatus status = RequestStatus.ERROR;
+                status.setStatusMsg(roomId + " is already exist");
+                return status.getStatusMsg();
             }
         }
     }
@@ -81,15 +91,20 @@ public class FelicaAttendanceManagerApplication {
     @PostMapping("/api/rooms/{roomId}/update")
     public String updateStatus(@PathVariable int roomId, @RequestParam(value = "idm", defaultValue = "") String idm) {
         if (idm.equals("")) {
-            return "Please specify idm in RequestParam";
+            RequestStatus status = RequestStatus.BAD_REQUEST;
+            status.setStatusMsg("Please specify idm in RequestParam");
+            return status.getStatusMsg();
         } else {
+            ResultStatus resultStatus;
             try {
-                RoomService.updateStatus(roomId, idm);
+                resultStatus = RoomService.updateStatus(roomId, idm);
             } catch (Exception e) {
                 e.printStackTrace();
-                return "error";
+                RequestStatus status = RequestStatus.ERROR;
+                status.setStatusMsg(e.getMessage());
+                return status.getStatusMsg();
             }
-            return "true";
+            return resultStatus.getMsg();
         }
     }
 
@@ -102,7 +117,9 @@ public class FelicaAttendanceManagerApplication {
             result = MemberService.checkRegist(idm);
         } catch (Exception e) {
             e.printStackTrace();
-            returnStr = "Error happen";
+            RequestStatus status = RequestStatus.ERROR;
+            status.setStatusMsg(e.getMessage());
+            return status.getStatusMsg();
         }
 
         if (result) {
@@ -113,34 +130,31 @@ public class FelicaAttendanceManagerApplication {
             MemberService.registIdm(idm, name);
             returnStr = "Regist Name";
         }
-        return returnStr;
+        RequestStatus status = RequestStatus.SUCCESS;
+        status.setStatusMsg(returnStr);
+        return status.getStatusMsg();
     }
 
     @GetMapping("/api/name/get")
     public String getName(@RequestParam(value = "idm", defaultValue = "") String idm) {
-        String returnStr;
+        RequestStatus status;
 
         if (idm.equals("")) {
-            returnStr = "parameter is null";
+            status = RequestStatus.BAD_REQUEST;
+            status.setStatusMsg("parameter is null");
+
         } else {
+            String returnStr;
             try {
                 returnStr = MemberService.getName(idm);
+                status = RequestStatus.SUCCESS;
+                status.setStatusMsg(returnStr);
             } catch (Exception e) {
                 e.printStackTrace();
-                returnStr = "error";
+                status = RequestStatus.ERROR;
+                status.setStatusMsg(e.getMessage());
             }
         }
-        return returnStr;
+        return status.getStatusMsg();
     }
-
-    @GetMapping("/test")
-    public String test() {
-
-        boolean result = RoomService.checkRoomExist(114);
-
-
-        return String.valueOf(result);
-    }
-
-
 }
